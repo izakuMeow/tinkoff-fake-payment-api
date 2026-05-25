@@ -18,18 +18,19 @@ public class PaymentController {
     // 1. Инициировать платёж
     @PostMapping("/Init")
     public Map<String, Object> init(@RequestBody Map<String, Object> req) {
-        String terminalKey = (String) req.get("TerminalKey");
-        String orderId     = (String) req.get("OrderId");
-        long amount        = Long.parseLong(req.get("Amount").toString());
+        String terminalKey      = (String) req.get("TerminalKey");
+        String orderId          = (String) req.get("OrderId");
+        long amount             = Long.parseLong(req.get("Amount").toString());
+        String notificationUrl  = (String) req.getOrDefault("NotificationURL", "");
 
-        Payment payment = paymentService.init(terminalKey, orderId, amount);
+        Payment payment = paymentService.init(terminalKey, orderId, amount, notificationUrl);
 
         return Map.of(
-                "Success",    true,
-                "ErrorCode",  "0",
-                "PaymentId",  payment.getPaymentId(),
-                "Status",     payment.getStatus(),
-                "Amount",     payment.getAmount()
+                "Success",   true,
+                "ErrorCode", "0",
+                "PaymentId", payment.getPaymentId(),
+                "Status",    payment.getStatus(),
+                "Amount",    payment.getAmount()
         );
     }
 
