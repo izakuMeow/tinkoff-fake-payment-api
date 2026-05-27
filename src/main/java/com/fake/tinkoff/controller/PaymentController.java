@@ -3,6 +3,8 @@ package com.fake.tinkoff.controller;
 import com.fake.tinkoff.model.Payment;
 import com.fake.tinkoff.service.PaymentService;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -18,12 +20,20 @@ public class PaymentController {
     // 1. Инициировать платёж
     @PostMapping("/Init")
     public Map<String, Object> init(@RequestBody Map<String, Object> req) {
-        String terminalKey      = (String) req.get("TerminalKey");
-        String orderId          = (String) req.get("OrderId");
-        long amount             = Long.parseLong(req.get("Amount").toString());
-        String notificationUrl  = (String) req.getOrDefault("NotificationURL", "");
+        String terminalKey    = (String) req.get("TerminalKey");
+        String orderId        = (String) req.get("OrderId");
+        long amount           = Long.parseLong(req.get("Amount").toString());
+        String notificationUrl = (String) req.getOrDefault("NotificationURL", "");
 
         Payment payment = paymentService.init(terminalKey, orderId, amount, notificationUrl);
+
+        if (payment == null) {
+            return Map.of(
+                    "Success",   false,
+                    "ErrorCode", "1",
+                    "Message",   "Неизвестный терминал"
+            );
+        }
 
         return Map.of(
                 "Success",   true,
@@ -53,17 +63,25 @@ public class PaymentController {
     // 4. Статус платежа
     @PostMapping("/GetState")
     public Map<String, Object> getState(@RequestBody Map<String, Object> req) {
-        String paymentId = (String) req.get("PaymentId");
-        Payment payment  = paymentService.getByPaymentId(paymentId);
-        if (payment == null) {
+        String orderId = (String) req.get("OrderId");
+        List<Payment> payments = paymentService.getByOrderId(orderId);
+
+        if (payments.isEmpty()) {
             return Map.of("Success", false, "ErrorCode", "1002");
         }
+
+        List<Map<String, Object>> items = payments.stream()
+                .map(p -> Map.<String, Object>of(
+                        "PaymentId", p.getPaymentId(),
+                        "Status",    p.getStatus(),
+                        "Amount",    p.getAmount()
+                ))
+                .toList();
+
         return Map.of(
                 "Success",   true,
                 "ErrorCode", "0",
-                "PaymentId", payment.getPaymentId(),
-                "Status",    payment.getStatus(),
-                "Amount",    payment.getAmount()
+                "Payments",  items
         );
     }
 
